@@ -1,1 +1,429 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <title>Jegyzőkönyv Fejlécjavító & DFQ Generátor</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 20px;
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+    .card {
+      background: #fff;
+      padding: 20px 25px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 20px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #0f172a;
+    }
+    .grid-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+    }
+    .form-group input {
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #0284c7;
+      box-shadow: 0 0 0 2px rgba(2,132,199,0.2);
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+    .btn-primary { background: #007bff; color: white; }
+    .btn-success { background: #10b981; color: white; }
+    .btn-dfq { background: #0284c7; color: white; }
+    .btn:hover { opacity: 0.9; }
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      max-height: 420px;
+    }
+  </style>
+</head>
+<body>
 
+  <div class="card">
+    <h2>Mérési Jegyzőkönyv Fejlécjavító & DFQ Konverter</h2>
+    <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
+      Tallózd be a Werth / PSM TXT jegyzőkönyvet. A program beolvassa a méréseket, a hiányzó fejlécadatokat bekéri, majd előállítja a javított TXT-t vagy a Q-DAS szabványú DFQ fájlt.
+    </p>
+    <input type="file" id="fileInput" accept=".txt" style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px; background: #fff;" />
+  </div>
+
+  <div class="card" id="editorCard" style="display: none;">
+    <h3 style="margin-top: 0;">Fejléc és DFQ Paraméterek</h3>
+    <div class="grid-form">
+      <div class="form-group">
+        <label for="inpTeileNr">Teile-Nummer (K1001 Cikkszám)*:</label>
+        <input type="text" id="inpTeileNr" placeholder="pl. 107937 vagy 106694">
+      </div>
+      <div class="form-group">
+        <label for="inpTeileBez">Teilebezeichnung (Cikk leírása):</label>
+        <input type="text" id="inpTeileBez" placeholder="pl. Ventilelement Radilo">
+      </div>
+      <div class="form-group">
+        <label for="inpKunde">Kunde (Vevő):</label>
+        <input type="text" id="inpKunde" placeholder="pl. ETO">
+      </div>
+      <div class="form-group">
+        <label for="inpAuftrag">Auftragsnummer (K1004 Rendelésszám):</label>
+        <input type="text" id="inpAuftrag" placeholder="pl. FA138">
+      </div>
+      <div class="form-group">
+        <label for="inpCharge">Chargennummer (K1005 Sarzs):</label>
+        <input type="text" id="inpCharge" placeholder="pl. 00138">
+      </div>
+      <div class="form-group">
+        <label for="inpMaschine">Masch.Nummer (Gép):</label>
+        <input type="text" id="inpMaschine" placeholder="pl. PROM">
+      </div>
+      <div class="form-group">
+        <label for="inpPruefer">Pruefer (K1081 Mérő kódja):</label>
+        <input type="text" id="inpPruefer" placeholder="pl. 257 vagy KS004">
+      </div>
+      <div class="form-group">
+        <label for="inpBemerkung">Bemerkungen (K1002 / Fészek azonosító):</label>
+        <input type="text" id="inpBemerkung" placeholder="pl. N8-T1-M9578">
+      </div>
+      <div class="form-group">
+        <label for="inpK1053">K1053 (Rendelés / Munkaazonosító):</label>
+        <input type="text" id="inpK1053" placeholder="pl. 1118161">
+      </div>
+      <div class="form-group">
+        <label for="inpDatum">Datum (Dátum):</label>
+        <input type="text" id="inpDatum">
+      </div>
+      <div class="form-group">
+        <label for="inpUhrzeit">Uhrzeit (Időpont):</label>
+        <input type="text" id="inpUhrzeit">
+      </div>
+      <div class="form-group">
+        <label for="inpPruefInfo1">Pruefungsinfo 1:</label>
+        <input type="text" id="inpPruefInfo1">
+      </div>
+      <div class="form-group">
+        <label for="inpPruefInfo2">Pruefungsinfo 2:</label>
+        <input type="text" id="inpPruefInfo2" value="Prod.: 00.000">
+      </div>
+      <div class="form-group">
+        <label for="inpPruefInfo3">Pruefungsinfo 3:</label>
+        <input type="text" id="inpPruefInfo3">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="previewTxt()">1. TXT Fejléc Előnézet</button>
+      <button class="btn btn-success" onclick="downloadFixedTxt()">💾 Javított TXT Letöltése</button>
+      <button class="btn btn-dfq" onclick="downloadDfq()">📊 DFQ Fájl Generálása & Letöltése</button>
+    </div>
+  </div>
+
+  <div class="card" id="previewCard" style="display: none;">
+    <h3 style="margin-top: 0;">Előnézet</h3>
+    <pre id="previewArea"></pre>
+  </div>
+
+  <script>
+    let originalRawContent = "";
+    let originalBodyRows = "";
+    let loadedFileName = "";
+    let parsedCharacteristics = [];
+
+    document.getElementById('fileInput').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      loadedFileName = file.name;
+      originalRawContent = await file.text();
+
+      parseIncomingReport(originalRawContent);
+      document.getElementById('editorCard').style.display = 'block';
+    });
+
+    function parseIncomingReport(txt) {
+      const getVal = (regex) => {
+        const m = txt.match(regex);
+        return m ? m[1].trim() : "";
+      };
+
+      // Dátum és időpont kinyerése
+      let datum = getVal(/Datum\s*:\s*([^\s|\n]+)/);
+      let uhrzeit = getVal(/Uhrzeit\s*:\s*([^\s|\n]+)/);
+
+      if (!datum) {
+        const dMatch = txt.match(/Dátum:\s*([0-9.]+)/i);
+        datum = dMatch ? dMatch[1].trim() : "01.09.2026";
+      }
+      if (!uhrzeit) {
+        const uMatch = txt.match(/Dátum:\s*[0-9.]+\s+([0-9:]+)/i);
+        uhrzeit = uMatch ? uMatch[1].trim() : "07:36:21";
+      }
+
+      document.getElementById('inpDatum').value = datum;
+      document.getElementById('inpUhrzeit').value = uhrzeit;
+      document.getElementById('inpKunde').value = getVal(/Kunde\s*:\s*([^\s|\n]+)/) || "ETO";
+      document.getElementById('inpTeileNr').value = getVal(/Teile-Nummer\s*:\s*([^\s|\n]+)/);
+      document.getElementById('inpTeileBez').value = getVal(/Teilebezeichnung\s*:\s*([^\n|]+)/);
+      document.getElementById('inpBemerkung').value = getVal(/Bemerkungen\s*:\s*([^\s|\n]+)/);
+      document.getElementById('inpPruefer').value = getVal(/Pruefer\s*:\s*([^\s|\n]+)/) || "KS004";
+      document.getElementById('inpAuftrag').value = getVal(/Auftragsnummer\s*:\s*([^\s|\n]+)/) || "FA138";
+      document.getElementById('inpCharge').value = getVal(/Chargennummer\s*:\s*([^\s|\n]+)/) || "00138";
+      document.getElementById('inpMaschine').value = getVal(/Masch\.Nummer\s*:\s*([^\s|\n]+)/) || "PROM";
+      document.getElementById('inpK1053').value = "1118161";
+
+      document.getElementById('inpPruefInfo1').value = `${datum} ${uhrzeit}Uhr`;
+      document.getElementById('inpPruefInfo2').value = "Prod.: 00.000";
+      document.getElementById('inpPruefInfo3').value = "";
+
+      const lines = txt.split(/\r?\n/);
+      let bodyStartIndex = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes("Werth Messtechnik / Datum:") || lines[i].includes("PSM / Dátum:")) {
+          bodyStartIndex = i;
+          break;
+        }
+      }
+
+      if (bodyStartIndex !== -1) {
+        originalBodyRows = lines.slice(bodyStartIndex).join("\n");
+      } else {
+        const parts = txt.split("+==========================================================================================+");
+        originalBodyRows = parts.length >= 3 ? parts.slice(2).join("+==========================================================================================+").trim() : txt;
+      }
+
+      extractCharacteristics(lines);
+    }
+
+    // DFQ adatok precíz kinyerése
+    function extractCharacteristics(lines) {
+      parsedCharacteristics = [];
+      let isTable = false;
+
+      for (let line of lines) {
+        if (line.includes("------")) {
+          isTable = true;
+          continue;
+        }
+        if (isTable && line.trim()) {
+          if (line.includes("Oldal:") || line.includes("Seite:") || line.includes("SZI") || line.includes("SYM")) continue;
+
+          const parts = line.trim().split(/\s+/);
+          if (parts.length >= 6) {
+            const sym = parts[0];
+            const akt = parseFloat(parts[1]);
+            const soll = parseFloat(parts[2]);
+            const otur = parseFloat(parts[3]);
+            const utur = parseFloat(parts[4]);
+            const megn = parts[parts.length - 1];
+
+            if (!isNaN(akt) && !isNaN(soll)) {
+              // Geometria típus hozzárendelése a szimbólum alapján
+              let desc = "Távolság";
+              let k2009 = "200";
+              if (sym === "FT") { desc = "2D polár helyzet"; k2009 = "109"; }
+              else if (sym === "D") { desc = "Átmérő"; k2009 = "101"; }
+              else if (sym === "LT") { desc = "Helyzettűrés"; k2009 = "109"; }
+              else if (sym === "Z" || sym === "X" || sym === "Y") { desc = "Pozíció"; k2009 = "109"; }
+
+              parsedCharacteristics.push({
+                sym: sym,
+                akt: akt,
+                soll: soll,
+                otur: otur,
+                utur: utur,
+                megn: megn,
+                desc: desc,
+                k2009: k2009
+              });
+            }
+          }
+        }
+      }
+    }
+
+    function createTargetHeader() {
+      const padRight = (str, len) => (str + " ".repeat(len)).slice(0, len);
+
+      const kunde = document.getElementById('inpKunde').value;
+      const teileBez = document.getElementById('inpTeileBez').value;
+      const teileNr = document.getElementById('inpTeileNr').value;
+      const auftrag = document.getElementById('inpAuftrag').value;
+      const charge = document.getElementById('inpCharge').value;
+      const maschine = document.getElementById('inpMaschine').value;
+      const pruefer = document.getElementById('inpPruefer').value;
+      const bemerkung = document.getElementById('inpBemerkung').value;
+      const datum = document.getElementById('inpDatum').value;
+      const uhrzeit = document.getElementById('inpUhrzeit').value;
+      const pInfo1 = document.getElementById('inpPruefInfo1').value;
+      const pInfo2 = document.getElementById('inpPruefInfo2').value;
+      const pInfo3 = document.getElementById('inpPruefInfo3').value;
+
+      return `+==========================================================================================+
+|                                                               | PSM Protech GmbH + Co.KG |
+|                                                               |                          | 
+|                 M E S S P R O T O K O L L                     |        Alpenstrasse 70   |
+|                                                               | 83487  Marktschellenberg |
+|                                                               | Tel.:  08650-9880-0      |
++==========================================================================================+
+|                                                                                          |
+|   Kunde           :  ${padRight(kunde, 42)}Datum  :${datum}          |
+|   Teilebezeichnung:  ${padRight(teileBez, 42)}Uhrzeit:${uhrzeit}          |
+|   Teile-Nummer    :  ${padRight(teileNr, 68)}|
+|   Auftragsnummer  :  ${padRight(auftrag, 68)}|
+|   Chargennummer   :  ${padRight(charge, 68)}|
+|   Masch.Nummer    :  ${padRight(maschine, 68)}|
+|   Pruefer         :  ${padRight(pruefer, 68)}|  
+|   Bemerkungen     :  ${padRight(bemerkung, 68)}|
+|   Pruefungsinfo   :  ${padRight(pInfo1, 68)}|
+|   Pruefungsinfo 2 :  ${padRight(pInfo2, 68)}|
+|   Pruefungsinfo 3 :  ${padRight(pInfo3, 68)}|
+|                                                                                          |
++==========================================================================================+
+`;
+    }
+
+    function previewTxt() {
+      const fullTxt = createTargetHeader() + originalBodyRows;
+      document.getElementById('previewArea').textContent = fullTxt;
+      document.getElementById('previewCard').style.display = 'block';
+    }
+
+    function downloadFixedTxt() {
+      const teileNr = document.getElementById('inpTeileNr').value.trim();
+      if (!teileNr) {
+        alert("Kérlek add meg a Teile-Nummer (Cikkszám) értékét!");
+        document.getElementById('inpTeileNr').focus();
+        return;
+      }
+      const fullTxt = createTargetHeader() + originalBodyRows;
+      const blob = new Blob([fullTxt], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = loadedFileName ? `JAVITOTT_${loadedFileName}` : "Javitott_Jegyzokonyv.txt";
+      a.click();
+    }
+
+    function downloadDfq() {
+      const teileNr = document.getElementById('inpTeileNr').value.trim();
+      if (!teileNr) {
+        alert("Kérlek add meg a Teile-Nummer mezőt a DFQ konvertáláshoz!");
+        document.getElementById('inpTeileNr').focus();
+        return;
+      }
+
+      const teileBez = document.getElementById('inpTeileBez').value;
+      const bemerkung = document.getElementById('inpBemerkung').value;
+      const auftrag = document.getElementById('inpAuftrag').value;
+      const charge = document.getElementById('inpCharge').value;
+      const pruefer = document.getElementById('inpPruefer').value;
+      const k1053 = document.getElementById('inpK1053').value;
+      const datum = document.getElementById('inpDatum').value;
+      const uhrzeit = document.getElementById('inpUhrzeit').value;
+
+      // DFQ Header felépítése pontosan a minta alapján
+      let dfq = "";
+      dfq += `K0100 ${parsedCharacteristics.length}\n`;
+      dfq += `K1001 ${teileNr}\n`;
+      dfq += `K1002 ${bemerkung || teileBez}\n`;
+      dfq += `K1003 ${teileBez}\n`;
+      dfq += `K1004 ${auftrag}\n`;
+      dfq += `K1007 ${charge}\n`;
+      dfq += `K1041 1\n`;
+      dfq += `K1053 ${k1053}\n`;
+      dfq += `K1081 ${pruefer}\n`;
+      dfq += `K1086 \nK1101 \nK1201 143122070061\nK1202 OI543\nK1301 2\nK1900 \n`;
+
+      // Master K2000/0 blokk
+      dfq += `K2001/0 \nK2004/0 0\nK2005/0 3\nK2007/0 \nK2011/0 \nK2013/0 0.0001\nK2022/0 4\nK2142/0 mm\n`;
+      dfq += `K2301/0 \nK2302/0 \nK2303/0 \nK2306/0 \n`;
+      dfq += `K2342/0 ${teileNr}_Program_1_szeriaprogram\n`;
+      dfq += `K2343/0 ${datum}   ${uhrzeit}\n`;
+      dfq += `K2344/0 Master\nK2415/0 143122070061\nK2402/0 OI543\nK2406/0 Carl Zeiss Oberkochen\nK8500/0 \n`;
+
+      // Karakterisztikák blokkja
+      parsedCharacteristics.forEach((item, idx) => {
+        const i = idx + 1;
+        const utolAbs = Math.abs(item.utur);
+        const otolAbs = Math.abs(item.otur);
+        const tolRange = (otolAbs + utolAbs).toFixed(6);
+
+        dfq += `K2001/${i} ${i}\n`;
+        dfq += `K2002/${i} ${item.megn}\n`;
+        dfq += `K2003/${i} ${item.desc}\n`;
+        dfq += `K2008/${i} \n`;
+        dfq += `K2009/${i} ${item.k2009}\n`;
+        dfq += `K2030/${i} \nK2031/${i} \n`;
+        dfq += `K2100/${i} ${item.soll.toFixed(6)}\n`;
+        dfq += `K2101/${i} ${item.soll.toFixed(3)}\n`;
+        dfq += `K2110/${i} ${(item.soll + item.utur).toFixed(6)}\n`;
+        dfq += `K2111/${i} ${(item.soll + item.otur).toFixed(6)}\n`;
+        dfq += `K2112/${i} ${item.utur.toFixed(3)}\n`;
+        dfq += `K2113/${i} ${item.otur.toFixed(3)}\n`;
+        dfq += `K2120/${i} 1\n`;
+        dfq += `K2121/${i} 1\n`;
+        dfq += `K2130/${i} \nK2131/${i} \nK2141/${i} \n`;
+        dfq += `K2151/${i} ${tolRange}\n`;
+        dfq += `K2213/${i} ${item.akt.toFixed(3)}\n`;
+      });
+
+      // Mérési eredmény sor a legvégén pontos formátumban:
+      // pl: 0.579 0 09.09.2026/08:41:01 0.164 0 09.09.2026/08:41:01 ...
+      const ts = `${datum}/${uhrzeit}`;
+      let dataRow = "";
+      parsedCharacteristics.forEach(item => {
+        dataRow += `${item.akt.toFixed(3)} 0 ${ts} `;
+      });
+      dfq += dataRow + "\n";
+
+      // Letöltés előnézettel
+      document.getElementById('previewArea').textContent = dfq;
+      document.getElementById('previewCard').style.display = 'block';
+
+      const blob = new Blob([dfq], { type: 'application/octet-stream;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const baseName = loadedFileName ? loadedFileName.replace(/\.[^/.]+$/, "") : "Meresi_Eredmeny";
+      a.download = `${baseName}.DFQ`;
+      a.click();
+    }
+  </script>
+</body>
+</html>
