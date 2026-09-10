@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
-  <title>HP-Jegyzőkönyv Fejlécjavító & DFQ Generátor</title>
+  <title>HP-Werth-DFQ-Konverter</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -81,9 +81,9 @@
 <body>
 
   <div class="card">
-    <h2>HP-Mérési Jegyzőkönyv Fejlécjavító & DFQ Konverter</h2>
+    <h2>HP-Werth-DFQ-Konverter</h2>
     <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
-      Tallózd be a Werth /TXT jegyzőkönyvet. A program beolvassa a méréseket, a hiányzó fejlécadatokat bekéri, majd előállítja a javított TXT-t vagy a Q-DAS szabványú DFQ fájlt.
+      Tallózd be a Werth mérési TXT jegyzőkönyvet. A program beolvassa a méréseket, a hiányzó fejlécadatokat bekéri, majd előállítja a javított TXT-t vagy a Q-DAS szabványú DFQ fájlt.
     </p>
     <input type="file" id="fileInput" accept=".txt" style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px; background: #fff;" />
   </div>
@@ -184,7 +184,6 @@
         return m ? m[1].trim() : "";
       };
 
-      // Dátum és időpont kinyerése
       let datum = getVal(/Datum\s*:\s*([^\s|\n]+)/);
       let uhrzeit = getVal(/Uhrzeit\s*:\s*([^\s|\n]+)/);
 
@@ -216,7 +215,7 @@
       const lines = txt.split(/\r?\n/);
       let bodyStartIndex = -1;
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes("Werth Messtechnik / Datum:") || lines[i].includes("PSM / Dátum:")) {
+        if (lines[i].includes("Werth Messtechnik / Datum:") || lines[i].includes("Dátum:")) {
           bodyStartIndex = i;
           break;
         }
@@ -232,7 +231,6 @@
       extractCharacteristics(lines);
     }
 
-    // DFQ adatok precíz kinyerése
     function extractCharacteristics(lines) {
       parsedCharacteristics = [];
       let isTable = false;
@@ -255,7 +253,6 @@
             const megn = parts[parts.length - 1];
 
             if (!isNaN(akt) && !isNaN(soll)) {
-              // Geometria típus hozzárendelése a szimbólum alapján
               let desc = "Távolság";
               let k2009 = "200";
               if (sym === "FT") { desc = "2D polár helyzet"; k2009 = "109"; }
@@ -297,7 +294,7 @@
       const pInfo3 = document.getElementById('inpPruefInfo3').value;
 
       return `+==========================================================================================+
-|                                                               | PSM Protech GmbH + Co.KG |
+|                                                               |                          |
 |                                                               |                          | 
 |                 M E S S P R O T O K O L L                     |        Alpenstrasse 70   |
 |                                                               | 83487  Marktschellenberg |
@@ -358,7 +355,6 @@
       const datum = document.getElementById('inpDatum').value;
       const uhrzeit = document.getElementById('inpUhrzeit').value;
 
-      // DFQ Header felépítése pontosan a minta alapján
       let dfq = "";
       dfq += `K0100 ${parsedCharacteristics.length}\n`;
       dfq += `K1001 ${teileNr}\n`;
@@ -371,14 +367,12 @@
       dfq += `K1081 ${pruefer}\n`;
       dfq += `K1086 \nK1101 \nK1201 143122070061\nK1202 OI543\nK1301 2\nK1900 \n`;
 
-      // Master K2000/0 blokk
       dfq += `K2001/0 \nK2004/0 0\nK2005/0 3\nK2007/0 \nK2011/0 \nK2013/0 0.0001\nK2022/0 4\nK2142/0 mm\n`;
       dfq += `K2301/0 \nK2302/0 \nK2303/0 \nK2306/0 \n`;
       dfq += `K2342/0 ${teileNr}_Program_1_szeriaprogram\n`;
       dfq += `K2343/0 ${datum}   ${uhrzeit}\n`;
       dfq += `K2344/0 Master\nK2415/0 143122070061\nK2402/0 OI543\nK2406/0 Carl Zeiss Oberkochen\nK8500/0 \n`;
 
-      // Karakterisztikák blokkja
       parsedCharacteristics.forEach((item, idx) => {
         const i = idx + 1;
         const utolAbs = Math.abs(item.utur);
@@ -404,8 +398,6 @@
         dfq += `K2213/${i} ${item.akt.toFixed(3)}\n`;
       });
 
-      // Mérési eredmény sor a legvégén pontos formátumban:
-      // pl: 0.579 0 09.09.2026/08:41:01 0.164 0 09.09.2026/08:41:01 ...
       const ts = `${datum}/${uhrzeit}`;
       let dataRow = "";
       parsedCharacteristics.forEach(item => {
@@ -413,7 +405,6 @@
       });
       dfq += dataRow + "\n";
 
-      // Letöltés előnézettel
       document.getElementById('previewArea').textContent = dfq;
       document.getElementById('previewCard').style.display = 'block';
 
