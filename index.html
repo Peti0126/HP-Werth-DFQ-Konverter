@@ -75,6 +75,7 @@
       font-family: Consolas, monospace;
       font-size: 12px;
       max-height: 420px;
+      white-space: pre;
     }
   </style>
 </head>
@@ -92,39 +93,39 @@
     <h3 style="margin-top: 0;">Fejléc és DFQ Paraméterek</h3>
     <div class="grid-form">
       <div class="form-group">
-        <label for="inpTeileNr">Teile-Nummer (K1001 Cikkszám)*:</label>
+        <label for="inpTeileNr">Teile-Nummer (Cikkszám)*:</label>
         <input type="text" id="inpTeileNr" placeholder="pl. 107937 vagy 106694">
       </div>
       <div class="form-group">
-        <label for="inpTeileBez">Teilebezeichnung (Cikk leírása):</label>
-        <input type="text" id="inpTeileBez" placeholder="pl. Ventilelement Radilo">
+        <label for="inpTeileBez">Teilebezeichnung (Cikk megnevezése):</label>
+        <input type="text" id="inpTeileBez" placeholder="pl. Steckerplatte Montie">
       </div>
       <div class="form-group">
         <label for="inpKunde">Kunde (Vevő):</label>
-        <input type="text" id="inpKunde" placeholder="pl. ETO">
+        <input type="text" id="inpKunde" placeholder="pl. Nass Magnet">
       </div>
       <div class="form-group">
-        <label for="inpAuftrag">Auftragsnummer (K1004 Rendelésszám):</label>
-        <input type="text" id="inpAuftrag" placeholder="pl. FA138">
+        <label for="inpAuftrag">Auftragsnummer (Rendelésszám):</label>
+        <input type="text" id="inpAuftrag" placeholder="pl. 5">
       </div>
       <div class="form-group">
-        <label for="inpCharge">Chargennummer (K1005 Sarzs):</label>
+        <label for="inpCharge">Chargennummer (Sarzs):</label>
         <input type="text" id="inpCharge" placeholder="pl. 00138">
       </div>
       <div class="form-group">
         <label for="inpMaschine">Masch.Nummer (Gép):</label>
-        <input type="text" id="inpMaschine" placeholder="pl. PROM">
+        <input type="text" id="inpMaschine" placeholder="pl. KS026">
       </div>
       <div class="form-group">
-        <label for="inpPruefer">Pruefer (K1081 Mérő kódja):</label>
-        <input type="text" id="inpPruefer" placeholder="pl. 257 vagy KS004">
+        <label for="inpPruefer">Pruefer (Mérő kódja):</label>
+        <input type="text" id="inpPruefer" placeholder="pl. KS004">
       </div>
       <div class="form-group">
-        <label for="inpBemerkung">Bemerkungen (K1002 / Fészek azonosító):</label>
-        <input type="text" id="inpBemerkung" placeholder="pl. N8-T1-M9578">
+        <label for="inpBemerkung">Bemerkungen (Fészek / Egyéb):</label>
+        <input type="text" id="inpBemerkung">
       </div>
       <div class="form-group">
-        <label for="inpK1053">K1053 (Rendelés / Munkaazonosító):</label>
+        <label for="inpK1053">K1053 (Munkaazonosító):</label>
         <input type="text" id="inpK1053" placeholder="pl. 1118161">
       </div>
       <div class="form-group">
@@ -136,7 +137,7 @@
         <input type="text" id="inpUhrzeit">
       </div>
       <div class="form-group">
-        <label for="inpPruefInfo1">Pruefungsinfo 1:</label>
+        <label for="inpPruefInfo1">Pruefungsinfo:</label>
         <input type="text" id="inpPruefInfo1">
       </div>
       <div class="form-group">
@@ -188,24 +189,24 @@
       let uhrzeit = getVal(/Uhrzeit\s*:\s*([^\s|\n]+)/);
 
       if (!datum) {
-        const dMatch = txt.match(/Dátum:\s*([0-9.]+)/i);
-        datum = dMatch ? dMatch[1].trim() : "01.09.2026";
+        const dMatch = txt.match(/D[áa]tum:\s*([0-9.]+)/i);
+        datum = dMatch ? dMatch[1].trim() : "09.09.2026";
       }
       if (!uhrzeit) {
-        const uMatch = txt.match(/Dátum:\s*[0-9.]+\s+([0-9:]+)/i);
-        uhrzeit = uMatch ? uMatch[1].trim() : "07:36:21";
+        const uMatch = txt.match(/D[áa]tum:\s*[0-9.]+\s+([0-9:]+)/i);
+        uhrzeit = uMatch ? uMatch[1].trim() : "09:31:33";
       }
 
       document.getElementById('inpDatum').value = datum;
       document.getElementById('inpUhrzeit').value = uhrzeit;
-      document.getElementById('inpKunde').value = getVal(/Kunde\s*:\s*([^\s|\n]+)/) || "ETO";
-      document.getElementById('inpTeileNr').value = getVal(/Teile-Nummer\s*:\s*([^\s|\n]+)/);
+      document.getElementById('inpKunde').value = getVal(/Kunde\s*:\s*([^\n|]+)/);
+      document.getElementById('inpTeileNr').value = getVal(/Teile-Nummer\s*:\s*([^\n|]+)/);
       document.getElementById('inpTeileBez').value = getVal(/Teilebezeichnung\s*:\s*([^\n|]+)/);
-      document.getElementById('inpBemerkung').value = getVal(/Bemerkungen\s*:\s*([^\s|\n]+)/);
-      document.getElementById('inpPruefer').value = getVal(/Pruefer\s*:\s*([^\s|\n]+)/) || "KS004";
-      document.getElementById('inpAuftrag').value = getVal(/Auftragsnummer\s*:\s*([^\s|\n]+)/) || "FA138";
-      document.getElementById('inpCharge').value = getVal(/Chargennummer\s*:\s*([^\s|\n]+)/) || "00138";
-      document.getElementById('inpMaschine').value = getVal(/Masch\.Nummer\s*:\s*([^\s|\n]+)/) || "PROM";
+      document.getElementById('inpBemerkung').value = getVal(/Bemerkungen\s*:\s*([^\n|]+)/);
+      document.getElementById('inpPruefer').value = getVal(/Pruefer\s*:\s*([^\n|]+)/);
+      document.getElementById('inpAuftrag').value = getVal(/Auftragsnummer\s*:\s*([^\n|]+)/);
+      document.getElementById('inpCharge').value = getVal(/Chargennummer\s*:\s*([^\n|]+)/);
+      document.getElementById('inpMaschine').value = getVal(/Masch\.Nummer\s*:\s*([^\n|]+)/);
       document.getElementById('inpK1053').value = "1118161";
 
       document.getElementById('inpPruefInfo1').value = `${datum} ${uhrzeit}Uhr`;
@@ -214,9 +215,17 @@
 
       const lines = txt.split(/\r?\n/);
       let bodyStartIndex = -1;
+
+      // Megkeressük a mérések előtti első sort (ahol a Datum/Dátum és Oldal szerepel)
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes("Werth Messtechnik / Datum:") || lines[i].includes("Dátum:")) {
-          bodyStartIndex = i;
+        const l = lines[i];
+        if (l.match(/D[áa]tum:.*(Oldal|Seite):/i) || l.includes("------")) {
+          // Ha az elválasztó vonalat találjuk meg először, visszalépünk a fejléc sorára
+          if (l.includes("------") && i > 0 && lines[i - 1].match(/D[áa]tum:/i)) {
+            bodyStartIndex = i - 1;
+          } else {
+            bodyStartIndex = i;
+          }
           break;
         }
       }
@@ -224,8 +233,7 @@
       if (bodyStartIndex !== -1) {
         originalBodyRows = lines.slice(bodyStartIndex).join("\n");
       } else {
-        const parts = txt.split("+==========================================================================================+");
-        originalBodyRows = parts.length >= 3 ? parts.slice(2).join("+==========================================================================================+").trim() : txt;
+        originalBodyRows = txt;
       }
 
       extractCharacteristics(lines);
@@ -241,7 +249,7 @@
           continue;
         }
         if (isTable && line.trim()) {
-          if (line.includes("Oldal:") || line.includes("Seite:") || line.includes("SZI") || line.includes("SYM")) continue;
+          if (line.match(/Oldal:|Seite:|SZI|SYM|AKT|IST/i)) continue;
 
           const parts = line.trim().split(/\s+/);
           if (parts.length >= 6) {
@@ -294,12 +302,6 @@
       const pInfo3 = document.getElementById('inpPruefInfo3').value;
 
       return `+==========================================================================================+
-|                                                               |                          |
-|                                                               |                          | 
-|                 M E S S P R O T O K O L L                     |        Alpenstrasse 70   |
-|                                                               | 83487  Marktschellenberg |
-|                                                               | Tel.:  08650-9880-0      |
-+==========================================================================================+
 |                                                                                          |
 |   Kunde           :  ${padRight(kunde, 42)}Datum  :${datum}          |
 |   Teilebezeichnung:  ${padRight(teileBez, 42)}Uhrzeit:${uhrzeit}          |
