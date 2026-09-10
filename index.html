@@ -84,7 +84,7 @@
   <div class="card">
     <h2>HP-Werth-DFQ-Konverter</h2>
     <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
-      Tallózd be a Werth mérési TXT jegyzőkönyvet. A rendszer minden mért értéknél a negatív előjelet automatikusan pozitívra cseréli a TXT-ben és a DFQ-ban is.
+      Tallózd be a Werth mérési TXT jegyzőkönyvet. A rendszer minden mért értéknél a negatív előjelet pozitívra cseréli, és a számmal kezdődő megnevezések betűi elé dupla alulvonást tesz (pl. 235X &rarr; 235__X).
     </p>
     <input type="file" id="fileInput" accept=".txt" style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px; background: #fff;" />
   </div>
@@ -167,6 +167,16 @@
     let loadedFileName = "";
     let parsedCharacteristics = [];
 
+    // Formázó függvény: szám utáni betűknél dupla aláhúzásjel (__)
+    function formatMegnevezes(name) {
+      if (!name) return "";
+      // Ha már van benne szimpla aláhúzás közvetlenül utána, lecseréli duplára; ha nincs, beszúrja
+      if (/^\d+_[A-Za-z]/.test(name)) {
+        return name.replace(/^(\d+)_([A-Za-z].*)$/, '$1__$2');
+      }
+      return name.replace(/^(\d+)([A-Za-z].*)$/, '$1__$2');
+    }
+
     document.getElementById('fileInput').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -238,13 +248,10 @@
         rawBodyLines = lines;
       }
 
-      // MINUSZ ELŐJELEK JAVÍTÁSA POZITÍVRA A TXT TÖRZSBEN
       originalBodyRows = sanitizeBodyRows(rawBodyLines);
-
       extractCharacteristics(lines);
     }
 
-    // Pozitívvá teszi az AKT/IST értéket a TXT sorokban
     function sanitizeBodyRows(lines) {
       let isTable = false;
       return lines.map(line => {
@@ -255,12 +262,20 @@
         if (isTable && line.trim()) {
           if (line.match(/Oldal:|Seite:|SZI|SYM|AKT|IST/i)) return line;
 
-          // Ha mérési adatsor és a 2. oszlopban negatív szám van
-          const match = line.match(/^(\s*\S+\s+)-([0-9.]+)(.*)$/);
+          // 1. Megnevezés dupla aláhúzással (__), az oszlopszélesség megtartásával
+          let updatedLine = line.replace(/(\s+)(\d+_?[A-Za-z][^\s]*)$/, (match, sp, name) => {
+            const formatted = formatMegnevezes(name);
+            const diff = formatted.length - name.length;
+            const newSp = sp.length > diff ? sp.slice(0, sp.length - diff) : sp;
+            return newSp + formatted;
+          });
+
+          // 2. AKT negatív előjel levétele
+          const match = updatedLine.match(/^(\s*\S+\s+)-([0-9.]+)(.*)$/);
           if (match) {
-            // A - előjelet levesszük, szóköz kiegyenlítéssel, hogy az oszloprend megmaradjon
             return `${match[1]} ${match[2]}${match[3]}`;
           }
+          return updatedLine;
         }
         return line;
       }).join("\n");
@@ -281,12 +296,13 @@
           const parts = line.trim().split(/\s+/);
           if (parts.length >= 6) {
             const sym = parts[0];
-            // Minden negatív számot Math.abs-szel pozitívvá teszünk
             const akt = Math.abs(parseFloat(parts[1]));
             const soll = parseFloat(parts[2]);
             const otur = parseFloat(parts[3]);
             const utur = parseFloat(parts[4]);
-            const megn = parts[parts.length - 1];
+            
+            const rawMegn = parts[parts.length - 1];
+            const megn = formatMegnevezes(rawMegn);
 
             if (!isNaN(akt) && !isNaN(soll)) {
               let desc = "Távolság";
@@ -298,7 +314,7 @@
 
               parsedCharacteristics.push({
                 sym: sym,
-                akt: akt, // Pozitív érték
+                akt: akt,
                 soll: soll,
                 otur: otur,
                 utur: utur,
@@ -390,22 +406,22 @@
       const uhrzeit = document.getElementById('inpUhrzeit').value;
 
       let dfq = "";
-      dfq += `K0100 ${parsedCharacteristics.length}\n`; //[cite: 3]
-      dfq += `K1001 ${teileNr}\n`; //[cite: 3]
-      dfq += `K1002 ${bemerkung || teileBez}\n`; //[cite: 3]
-      dfq += `K1003 ${teileBez}\n`; //[cite: 3]
-      dfq += `K1004 ${auftrag}\n`; //[cite: 3]
-      dfq += `K1007 ${charge}\n`; //[cite: 3]
-      dfq += `K1041 1\n`; //[cite: 3]
-      dfq += `K1053 ${k1053}\n`; //[cite: 3]
-      dfq += `K1081 ${pruefer}\n`; //[cite: 3]
-      dfq += `K1086 \nK1101 \nK1201 143122070061\nK1202 OI543\nK1301 2\nK1900 \n`; //[cite: 3]
+      dfq += `K0100 ${parsedCharacteristics.length}\n`;
+      dfq += `K1001 ${teileNr}\n`;
+      dfq += `K1002 ${bemerkung || teileBez}\n`;
+      dfq += `K1003 ${teileBez}\n`;
+      dfq += `K1004 ${auftrag}\n`;
+      dfq += `K1007 ${charge}\n`;
+      dfq += `K1041 1\n`;
+      dfq += `K1053 ${k1053}\n`;
+      dfq += `K1081 ${pruefer}\n`;
+      dfq += `K1086 \nK1101 \nK1201 143122070061\nK1202 OI543\nK1301 2\nK1900 \n`;
 
-      dfq += `K2001/0 \nK2004/0 0\nK2005/0 3\nK2007/0 \nK2011/0 \nK2013/0 0.0001\nK2022/0 4\nK2142/0 mm\n`; //[cite: 3]
-      dfq += `K2301/0 \nK2302/0 \nK2303/0 \nK2306/0 \n`; //[cite: 3]
-      dfq += `K2342/0 ${teileNr}_Program_1_szeriaprogram\n`; //[cite: 3]
-      dfq += `K2343/0 ${datum}   ${uhrzeit}\n`; //[cite: 3]
-      dfq += `K2344/0 Master\nK2415/0 143122070061\nK2402/0 OI543\nK2406/0 Carl Zeiss Oberkochen\nK8500/0 \n`; //[cite: 3]
+      dfq += `K2001/0 \nK2004/0 0\nK2005/0 3\nK2007/0 \nK2011/0 \nK2013/0 0.0001\nK2022/0 4\nK2142/0 mm\n`;
+      dfq += `K2301/0 \nK2302/0 \nK2303/0 \nK2306/0 \n`;
+      dfq += `K2342/0 ${teileNr}_Program_1_szeriaprogram\n`;
+      dfq += `K2343/0 ${datum}   ${uhrzeit}\n`;
+      dfq += `K2344/0 Master\nK2415/0 143122070061\nK2402/0 OI543\nK2406/0 Carl Zeiss Oberkochen\nK8500/0 \n`;
 
       parsedCharacteristics.forEach((item, idx) => {
         const i = idx + 1;
@@ -413,29 +429,29 @@
         const otolAbs = Math.abs(item.otur);
         const tolRange = (otolAbs + utolAbs).toFixed(6);
 
-        dfq += `K2001/${i} ${i}\n`; //[cite: 3]
-        dfq += `K2002/${i} ${item.megn}\n`; //[cite: 3]
-        dfq += `K2003/${i} ${item.desc}\n`; //[cite: 3]
-        dfq += `K2008/${i} \n`; //[cite: 3]
-        dfq += `K2009/${i} ${item.k2009}\n`; //[cite: 3]
-        dfq += `K2030/${i} \nK2031/${i} \n`; //[cite: 3]
-        dfq += `K2100/${i} ${item.soll.toFixed(6)}\n`; //[cite: 3]
-        dfq += `K2101/${i} ${item.soll.toFixed(3)}\n`; //[cite: 3]
-        dfq += `K2110/${i} ${(item.soll + item.utur).toFixed(6)}\n`; //[cite: 3]
-        dfq += `K2111/${i} ${(item.soll + item.otur).toFixed(6)}\n`; //[cite: 3]
-        dfq += `K2112/${i} ${item.utur.toFixed(3)}\n`; //[cite: 3]
-        dfq += `K2113/${i} ${item.otur.toFixed(3)}\n`; //[cite: 3]
-        dfq += `K2120/${i} 1\n`; //[cite: 3]
-        dfq += `K2121/${i} 1\n`; //[cite: 3]
-        dfq += `K2130/${i} \nK2131/${i} \nK2141/${i} \n`; //[cite: 3]
-        dfq += `K2151/${i} ${tolRange}\n`; //[cite: 3]
-        dfq += `K2213/${i} ${item.akt.toFixed(3)}\n`; //[cite: 3]
+        dfq += `K2001/${i} ${i}\n`;
+        dfq += `K2002/${i} ${item.megn}\n`;
+        dfq += `K2003/${i} ${item.desc}\n`;
+        dfq += `K2008/${i} \n`;
+        dfq += `K2009/${i} ${item.k2009}\n`;
+        dfq += `K2030/${i} \nK2031/${i} \n`;
+        dfq += `K2100/${i} ${item.soll.toFixed(6)}\n`;
+        dfq += `K2101/${i} ${item.soll.toFixed(3)}\n`;
+        dfq += `K2110/${i} ${(item.soll + item.utur).toFixed(6)}\n`;
+        dfq += `K2111/${i} ${(item.soll + item.otur).toFixed(6)}\n`;
+        dfq += `K2112/${i} ${item.utur.toFixed(3)}\n`;
+        dfq += `K2113/${i} ${item.otur.toFixed(3)}\n`;
+        dfq += `K2120/${i} 1\n`;
+        dfq += `K2121/${i} 1\n`;
+        dfq += `K2130/${i} \nK2131/${i} \nK2141/${i} \n`;
+        dfq += `K2151/${i} ${tolRange}\n`;
+        dfq += `K2213/${i} ${item.akt.toFixed(3)}\n`;
       });
 
       const ts = `${datum}/${uhrzeit}`;
       let dataRow = "";
       parsedCharacteristics.forEach(item => {
-        dataRow += `${item.akt.toFixed(3)} 0 ${ts} `; //[cite: 3]
+        dataRow += `${item.akt.toFixed(3)} 0 ${ts} `;
       });
       dfq += dataRow + "\n";
 
