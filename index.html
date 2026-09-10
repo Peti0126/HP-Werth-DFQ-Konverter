@@ -163,7 +163,6 @@
   </div>
 
   <script>
-    let originalRawContent = "";
     let originalBodyRows = "";
     let loadedFileName = "";
     let parsedCharacteristics = [];
@@ -173,7 +172,7 @@
       if (!file) return;
 
       loadedFileName = file.name;
-      originalRawContent = await file.text();
+      const originalRawContent = await file.text();
 
       parseIncomingReport(originalRawContent);
       document.getElementById('editorCard').style.display = 'block';
@@ -214,26 +213,32 @@
       document.getElementById('inpPruefInfo3').value = "";
 
       const lines = txt.split(/\r?\n/);
-      let bodyStartIndex = -1;
+      let splitIndex = -1;
 
-      // Megkeressük a mérések előtti első sort (ahol a Datum/Dátum és Oldal szerepel)
+      // Megkeressük a mérések legelső elválasztó vonalát
       for (let i = 0; i < lines.length; i++) {
-        const l = lines[i];
-        if (l.match(/D[áa]tum:.*(Oldal|Seite):/i) || l.includes("------")) {
-          // Ha az elválasztó vonalat találjuk meg először, visszalépünk a fejléc sorára
-          if (l.includes("------") && i > 0 && lines[i - 1].match(/D[áa]tum:/i)) {
-            bodyStartIndex = i - 1;
+        if (lines[i].includes("--------------------------------------------------------------------------------------")) {
+          // Ha az előző sor a lap/dátum sor (pl. Werth Messtechnik / Datum: vagy PSM / Dátum:), onnantól kezdjük
+          if (i > 0 && lines[i - 1].match(/D[áa]tum:.*(Oldal|Seite):/i)) {
+            splitIndex = i - 1;
           } else {
-            bodyStartIndex = i;
+            splitIndex = i;
           }
           break;
         }
       }
 
-      if (bodyStartIndex !== -1) {
-        originalBodyRows = lines.slice(bodyStartIndex).join("\n");
+      if (splitIndex !== -1) {
+        // Kizárólag a méréseket hagyjuk meg, a teljes régi dobozos fejlécet töröljük
+        originalBodyRows = lines.slice(splitIndex).join("\n");
       } else {
-        originalBodyRows = txt;
+        // Biztonsági tartalék: az utolsó keretlezáró vonal utáni rész
+        const lastBoxBorder = txt.lastIndexOf("+==========================================================================================+");
+        if (lastBoxBorder !== -1) {
+          originalBodyRows = txt.slice(lastBoxBorder + 92).trimStart();
+        } else {
+          originalBodyRows = txt;
+        }
       }
 
       extractCharacteristics(lines);
