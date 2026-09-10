@@ -106,7 +106,7 @@
       </div>
       <div class="form-group">
         <label for="inpAuftrag">Auftragsnummer (Rendelésszám):</label>
-        <input type="text" id="inpAuftrag" placeholder="pl. 5">
+        <input type="text" id="inpAuftrag" placeholder="pl. 6">
       </div>
       <div class="form-group">
         <label for="inpCharge">Chargennummer (Sarzs):</label>
@@ -167,15 +167,20 @@
     let loadedFileName = "";
     let parsedCharacteristics = [];
 
-    document.getElementById('fileInput').addEventListener('change', async function(e) {
+    document.getElementById('fileInput').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (!file) return;
 
       loadedFileName = file.name;
-      const originalRawContent = await file.text();
 
-      parseIncomingReport(originalRawContent);
-      document.getElementById('editorCard').style.display = 'block';
+      // Kódolás javítása: Windows-1250 kódolással olvassuk be a magyar/német ékezetek miatt
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const text = event.target.result;
+        parseIncomingReport(text);
+        document.getElementById('editorCard').style.display = 'block';
+      };
+      reader.readAsText(file, 'windows-1250');
     });
 
     function parseIncomingReport(txt) {
@@ -184,16 +189,17 @@
         return m ? m[1].trim() : "";
       };
 
+      // Dátum és időpont kinyerése
       let datum = getVal(/Datum\s*:\s*([^\s|\n]+)/);
       let uhrzeit = getVal(/Uhrzeit\s*:\s*([^\s|\n]+)/);
 
       if (!datum) {
-        const dMatch = txt.match(/D[áa]tum:\s*([0-9.]+)/i);
+        const dMatch = txt.match(/tum:\s*([0-9.]+)/i);
         datum = dMatch ? dMatch[1].trim() : "09.09.2026";
       }
       if (!uhrzeit) {
-        const uMatch = txt.match(/D[áa]tum:\s*[0-9.]+\s+([0-9:]+)/i);
-        uhrzeit = uMatch ? uMatch[1].trim() : "09:31:33";
+        const uMatch = txt.match(/tum:\s*[0-9.]+\s+([0-9:]+)/i);
+        uhrzeit = uMatch ? uMatch[1].trim() : "09:41:39";
       }
 
       document.getElementById('inpDatum').value = datum;
@@ -215,11 +221,12 @@
       const lines = txt.split(/\r?\n/);
       let splitIndex = -1;
 
-      // Megkeressük a mérések legelső elválasztó vonalát
+      // A vágási pont megkeresése: a táblázat előtti első vonal vagy oldaljelölő
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes("--------------------------------------------------------------------------------------")) {
-          // Ha az előző sor a lap/dátum sor (pl. Werth Messtechnik / Datum: vagy PSM / Dátum:), onnantól kezdjük
-          if (i > 0 && lines[i - 1].match(/D[áa]tum:.*(Oldal|Seite):/i)) {
+        const l = lines[i];
+        if (l.includes("--------------------------------------------------------------------------------------")) {
+          // Ha az előző sor az oldal/dátum sor, akkor attól lefelé tartjuk meg
+          if (i > 0 && (lines[i - 1].includes("Oldal:") || lines[i - 1].includes("Seite:") || lines[i - 1].includes("tum:"))) {
             splitIndex = i - 1;
           } else {
             splitIndex = i;
@@ -229,16 +236,10 @@
       }
 
       if (splitIndex !== -1) {
-        // Kizárólag a méréseket hagyjuk meg, a teljes régi dobozos fejlécet töröljük
+        // A régi teljes dobozt levágjuk
         originalBodyRows = lines.slice(splitIndex).join("\n");
       } else {
-        // Biztonsági tartalék: az utolsó keretlezáró vonal utáni rész
-        const lastBoxBorder = txt.lastIndexOf("+==========================================================================================+");
-        if (lastBoxBorder !== -1) {
-          originalBodyRows = txt.slice(lastBoxBorder + 92).trimStart();
-        } else {
-          originalBodyRows = txt;
-        }
+        originalBodyRows = txt;
       }
 
       extractCharacteristics(lines);
@@ -290,7 +291,11 @@
     }
 
     function createTargetHeader() {
-      const padRight = (str, len) => (str + " ".repeat(len)).slice(0, len);
+      const padRight = (str, len) => {
+        str = (str === undefined || str === null) ? "" : String(str);
+        if (str.length >= len) return str.slice(0, len);
+        return str + " ".repeat(len - str.length);
+      };
 
       const kunde = document.getElementById('inpKunde').value;
       const teileBez = document.getElementById('inpTeileBez').value;
@@ -338,7 +343,7 @@
         return;
       }
       const fullTxt = createTargetHeader() + originalBodyRows;
-      const blob = new Blob([fullTxt], { type: 'text/plain;charset=utf-8' });
+      const blob = new Blob([fullTxt], { type: 'text/plain;charset=windows-1250' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = loadedFileName ? `JAVITOTT_${loadedFileName}` : "Javitott_Jegyzokonyv.txt";
@@ -415,7 +420,7 @@
       document.getElementById('previewArea').textContent = dfq;
       document.getElementById('previewCard').style.display = 'block';
 
-      const blob = new Blob([dfq], { type: 'application/octet-stream;charset=utf-8' });
+      const blob = new Blob([dfq], { type: 'application/octet-stream;charset=windows-1250' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       const baseName = loadedFileName ? loadedFileName.replace(/\.[^/.]+$/, "") : "Meresi_Eredmeny";
